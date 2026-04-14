@@ -1,0 +1,66 @@
+# Provider 配置
+providers:
+  anthropic:
+    base_url: "https://api.anthropic.com"
+    api_key: "${ANTHROPIC_API_KEY}"
+    default_headers: {}
+    concurrency: 2
+
+  openrouter:
+    base_url: "https://openrouter.ai/api"
+    api_key: "${OPENROUTER_API_KEY}"
+    concurrency: 2
+
+# 模型列表
+models:
+  - name: "claude-sonnet-4-20250514"
+    provider: anthropic
+    display_name: "Claude Sonnet 4"
+  - name: "gpt-4o"
+    provider: openrouter
+    display_name: "GPT-4o"
+
+# 评测配置
+evaluation:
+  schedule: [0, 4, 6, 10, 14, 18, 22]
+  timezone: "Asia/Shanghai"
+  probe_types:
+    - instruction
+    - style_open
+    - coding_frontend
+    - coding_backend
+    - consistency
+    - statistical
+  max_llm_concurrent: 5
+  max_retries: 5
+  retry_intervals: [5, 10, 30, 60]
+  timeout: 60
+  statistical_samples: 20
+  targets:
+    - model: "claude-sonnet-4-20250514"
+      enabled: true
+      baseline_run_id: null
+    - model: "gpt-4o"
+      enabled: true
+      baseline_run_id: null
+
+  thresholds:
+    capability_drop_warn: 0.05
+    capability_drop_critical: 0.15
+    similarity_warn: 0.7
+    similarity_critical: 0.5
+    behavior_js_warn: 0.1
+    behavior_js_critical: 0.3
+    metadata_length_warn: 0.1
+    metadata_length_critical: 0.3
+
+  weights:
+    capability: 0.30
+    text_similarity: 0.25
+    behavior: 0.20
+    metadata: 0.10
+    statistical: 0.15
+
+report:
+  output_dir: "./reports"
+  auto_open: false
