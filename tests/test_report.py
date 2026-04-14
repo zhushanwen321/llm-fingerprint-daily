@@ -155,7 +155,7 @@ class TestEmptyInput:
         html = gen.generate_model_report(model_dir)
         assert "暂无数据" in html
 
-    def test_empty_model_list_in_global(self, tmp_path):
+    def test_empty_model_list_in_global(self):
         gen = ReportGenerator()
         html = gen.generate_global_report([])
         assert "暂无数据" in html
