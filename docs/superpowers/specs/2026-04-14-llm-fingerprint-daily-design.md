@@ -91,10 +91,12 @@ providers:
     base_url: "https://api.anthropic.com"
     api_key: "${ANTHROPIC_API_KEY}"
     default_headers: {}
+    concurrency: 2                 # 该 provider 最大并发请求数
 
   openrouter:
     base_url: "https://openrouter.ai/api"
     api_key: "${OPENROUTER_API_KEY}"
+    concurrency: 2
 
 # 模型列表
 models:
@@ -117,16 +119,39 @@ evaluation:
     - consistency
     - statistical
     - logprobs
-  concurrency: 2                 # 每 provider 最大并发
-  max_llm_concurrent: 5          # 全局 LLM API 最大并发
+  max_llm_concurrent: 5          # 全局 LLM API 最大并发（约束: sum(provider.concurrency) <= 此值）
   max_retries: 5                 # 单次请求最大重试次数
   retry_intervals: [5, 10, 30, 60]  # 递增重试间隔，超出取最后一个值
   timeout: 60                    # 单次请求超时（秒）
+  statistical_samples: 20        # statistical 探针对同一 prompt 的采样次数
   targets:
     - model: "claude-sonnet-4-20250514"
       enabled: true
+      baseline_run_id: null      # null 表示使用最早一次成功 run 作为基线
     - model: "gpt-4o"
       enabled: true
+      baseline_run_id: null
+
+  # 告警阈值
+  thresholds:
+    capability_drop_warn: 0.05       # 约束满足率下降 5pp
+    capability_drop_critical: 0.15   # 下降 15pp
+    similarity_warn: 0.7             # 文本相似度低于 0.7
+    similarity_critical: 0.5         # 低于 0.5
+    behavior_js_warn: 0.1            # JS 散度超过 0.1
+    behavior_js_critical: 0.3        # 超过 0.3
+    metadata_length_warn: 0.1        # 长度变化超过 10%
+    metadata_length_critical: 0.3    # 超过 30%
+
+  # overall_score 为各维度分数的加权平均
+  # 默认权重: capability 0.25, text_similarity 0.25, behavior 0.2, metadata 0.15, statistical 0.15
+  # 权重可在配置中覆盖
+  weights:
+    capability: 0.25
+    text_similarity: 0.25
+    behavior: 0.20
+    metadata: 0.15
+    statistical: 0.15
 
 # 报告配置
 report:
@@ -139,6 +164,9 @@ report:
 - evaluation.targets 和 models 解耦，可注册多模型但只评测部分
 - api_key 支持 `${ENV_VAR}` 环境变量引用
 - retry_intervals[i] 为第 i 次重试的等待秒数，超出数组长度取最后一个值
+- concurrency 在每个 provider 下独立配置，适应不同 provider 的 rate limit
+- 约束：sum(provider.concurrency) <= max_llm_concurrent，避免全局 Semaphore 饥饿
+- overall_score 为各维度加权平均，权重可配置
 
 ## 4. 探针设计
 
@@ -265,10 +293,10 @@ RunOrchestrator          唯一调度入口：编排完整 run
 ```python
 class LLMGateway:
     def __init__(self, config):
-        self._global_sem = asyncio.Semaphore(config.max_llm_concurrent)
+        self._global_sem = asyncio.Semaphore(config.evaluation.max_llm_concurrent)
         self._provider_sems = {
-            name: asyncio.Semaphore(p.concurrency)
-            for name, p in config.providers.items()
+            name: asyncio.Semaphore(provider.concurrency)
+            for name, provider in config.providers.items()
         }
 
     async def call(self, provider, model, messages, **kwargs):
@@ -286,6 +314,7 @@ run_id 在探测启动时统一生成（`%Y%m%d%H%M%S`），贯穿本次 run 的
 
 ### 单次探测结果 JSON 结构
 
+正常响应：
 ```json
 {
   "meta": {
@@ -318,6 +347,60 @@ run_id 在探测启动时统一生成（`%Y%m%d%H%M%S`），贯穿本次 run 的
 }
 ```
 
+请求失败时 response 替换为 error：
+```json
+{
+  "probe_id": "instruction_001",
+  "request": { "prompt": "...", "temperature": 0, "max_tokens": 500 },
+  "error": {
+    "type": "timeout",
+    "message": "Request timed out after 60s",
+    "retries_attempted": 3,
+    "last_retry_interval": 30
+  }
+}
+```
+
+分析引擎遇到 error 类结果时跳过该探针的评分，在 detail 中标注 "skipped: N errors"。
+
+### logprobs 探针适配说明
+
+logprobs 探针在执行前检查 provider 是否支持返回 logprobs：
+- 如果 API 返回 logprobs 数据 → 正常存储并分析
+- 如果 API 不返回 logprobs（某些中转服务可能屏蔽） → 将该结果标记为 `"logprobs_available": false`，分析时跳过 logprobs 维度，不产生告警
+- 配置中可选择是否在 logprobs 不可用时降级为普通文本探针（`logprobs_fallback_to_text: true`）
+
+### 基线管理机制
+
+- 首次对某模型执行探测时，自动将该次 run 标记为基线（`is_baseline: true`）
+- 基线信息存储在模型根目录下的 `baseline.json`：
+  ```json
+  {
+    "current_baseline_run_id": "20260414000003",
+    "history": [
+      {"run_id": "20260414000003", "set_at": "2026-04-14T00:00:03+08:00", "set_by": "auto"}
+    ]
+  }
+  ```
+- `fingerprint baseline --run-id XXX --model XXX` 命令更新 `baseline.json`
+- 后续所有分析均与 `current_baseline_run_id` 指向的 run 对比
+- 基线不会自动过期，需要用户手动更新（模型版本更新后应手动设置新基线）
+
+### consistency 探针判定逻辑
+
+consistency 探针在同一 run 内对同一组 variants 分别调用 API，然后：
+1. 收集所有 variant 的响应文本
+2. 如果 `expected_consistency: "same_answer"` → 提取各 variant 回答中的关键答案，检查是否语义一致
+3. 计算各 variant 间的文本相似度矩阵
+4. 与基线的一致性矩阵对比，检测一致性是否下降
+5. 判定方式：先做 variant 间对比（同一 run 内），再做 run 间对比（与基线）
+
+### statistical 探针采样机制
+
+statistical 探针对同一 prompt 执行 `statistical_samples`（默认 20）次调用（temperature > 0）：
+- 所有采样结果存储在同一个 `{run_id}.json` 的 results 数组中，通过 `sample_index` 字段区分
+- 分析时将所有采样聚合成分布（输出长度分布、token 频率分布），再与基线分布做 KS 检验和 JS 散度
+
 ## 6. 分析引擎
 
 ### 分析模块与探针类型对应
@@ -336,13 +419,18 @@ run_id 在探测启动时统一生成（`%Y%m%d%H%M%S`），贯穿本次 run 的
 
 输入：当前 run JSON + 基线 baseline JSON
 
-对每个探针结果：
-1. capability.check() — 检查约束满足率 / 代码覆盖率 / 答案正确率
-2. behavior.extract() — 提取词频分布、句长分布、标点模式、结构特征
-3. similarity.compare() — 与基线文本计算余弦相似度
-4. metadata.compare() — 输出长度/响应延迟/token 用量变化率
-5. statistical.test() — KS 检验 + JS 散度（仅 statistical 类型）
-6. logprobs.compare() — token 概率分布 KL 散度（仅 logprobs 类型）
+对每个探针结果，根据 probe_type 条件执行对应分析：
+
+| 步骤 | 适用的 probe_type | 说明 |
+|------|-------------------|------|
+| capability.check() | instruction, coding_frontend, coding_backend | 约束满足率 / 代码覆盖率 / 答案正确率 |
+| behavior.extract() | style_open | 词频分布、句长分布、标点模式、结构特征 |
+| similarity.compare() | style_open, consistency | 与基线文本计算余弦相似度；consistency 还做 variant 间一致性 |
+| metadata.compare() | 所有类型 | 输出长度/响应延迟/token 用量变化率 |
+| statistical.test() | statistical | KS 检验 + JS 散度 |
+| logprobs.compare() | logprobs | token 概率分布 KL 散度 |
+
+对于不匹配的步骤直接跳过，不产生评分。
 
 ### 综合评分与告警
 
@@ -379,7 +467,7 @@ run_id 在探测启动时统一生成（`%Y%m%d%H%M%S`），贯穿本次 run 的
 
 ### 技术选型
 
-APScheduler BackgroundScheduler，进程内运行。
+APScheduler AsyncIOScheduler，与异步执行引擎在同一个 event loop 中运行，避免线程/异步桥接问题。
 
 ### 并发控制（三层）
 
@@ -410,12 +498,21 @@ fingerprint report --all
 # 查看某个模型的历史趋势
 fingerprint history data/anthropic__claude-sonnet-4-20250514/
 
-# 启动内置调度器
+# 启动内置调度器（前台运行，Ctrl+C 优雅停止）
 fingerprint serve
+
+# 后台运行（用户可自行搭配 nohup / launchd / systemd）
+# 项目不自带 daemon 模式，保持简单
+fingerprint serve &
 
 # 设置基线
 fingerprint baseline --run-id 20260414000003 --model claude-sonnet-4-20250514
 ```
+
+serve 模式说明：
+- 前台进程，日志输出到 stdout/stderr
+- Ctrl+C 触发优雅停止：等待当前 run 完成（最多 timeout 秒），然后退出
+- 不使用 PID 文件或锁文件，用户如需 daemon 化可自行搭配系统工具
 
 ### 异常处理
 
@@ -434,13 +531,15 @@ fingerprint baseline --run-id 20260414000003 --model claude-sonnet-4-20250514
 
 ### 报告类型
 
-**单模型报告**（`data/{provider}__{model}/report/{date}.html`）：
+**单模型报告**（`data/{provider}__{model}/report/`）：
+- 每次生成报告覆盖写入 `latest.html`，同时按日期保留 `report_{date}_{run_id}.html`
+- 报告内容始终包含完整历史趋势（读取该模型所有 run 数据），不仅仅是最新一次
 - 概览：评分、探测轮次、时间跨度
 - 各维度评分趋势折线图（Chart.js）
 - 告警时间线
 - 各 probe_type 详细历史表格
 
-**全局汇总报告**（`reports/report_{date}.html`）：
+**全局汇总报告**（`reports/report_{date}_{run_id}.html`）：
 - 所有模型评分对比矩阵
 - 同一 run_id 下各模型横向对比
 - 全局告警汇总
@@ -450,6 +549,7 @@ fingerprint baseline --run-id 20260414000003 --model claude-sonnet-4-20250514
 ```
 data/
 └── {provider}__{model}/
+    ├── baseline.json             # 基线指针（指向基线 run_id）
     ├── instruction/
     │   └── {run_id}.json
     ├── style_open/
@@ -467,8 +567,8 @@ data/
     ├── analysis/
     │   └── {run_id}.json
     └── report/
-        ├── {date}.html
-        └── latest.html
+        ├── latest.html
+        └── report_{date}_{run_id}.html
 ```
 
 设计原则：
