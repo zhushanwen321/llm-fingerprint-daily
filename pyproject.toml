@@ -19,3 +19,6 @@ fingerprint = "src.main:app"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "pytest-cov"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
