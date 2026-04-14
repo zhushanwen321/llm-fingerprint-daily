@@ -1,0 +1,90 @@
+[
+  {
+    "id": "style_open_001",
+    "type": "style_open",
+    "language": "zh",
+    "prompt": "你刚刚搬到一个新城市，一个朋友问你这里怎么样。用日常对话的语气描述你的感受，不要用任何书面化或正式的表达方式。",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["sentence_length_distribution", "spoken_markers", "emotional_words_ratio"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_002",
+    "type": "style_open",
+    "language": "zh",
+    "prompt": "有人说\"人工智能会让大多数人失业\"，你同意吗？请从一个资深软件工程师的角度分享你的看法。",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["argument_structure", "hedging_frequency", "first_person_usage"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_003",
+    "type": "style_open",
+    "language": "zh",
+    "prompt": "用你自己的话解释\"递归\"这个概念，假设你的听众是一个12岁的小学生，他对编程一无所知。",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["analogy_frequency", "vocabulary_complexity", "metaphor_type"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_004",
+    "type": "style_open",
+    "language": "zh",
+    "prompt": "描述一个你心目中理想的周末，从早上醒来到晚上入睡，越具体越好。",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["temporal_expressions", "sensory_details_count", "narrative_voice"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_005",
+    "type": "style_open",
+    "language": "en",
+    "prompt": "You are writing a letter to your future self, 10 years from now. What would you say? Write as if you are actually sending this letter.",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["sentence_length_distribution", "emotional_valence", "temporal_references"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_006",
+    "type": "style_open",
+    "language": "en",
+    "prompt": "A colleague asks you why the team's codebase feels messy. Explain your perspective on what makes code maintainable, as if you were having a casual conversation over coffee.",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["technical_vocabulary_density", "analogy_usage", "sentence_starters"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_007",
+    "type": "style_open",
+    "language": "en",
+    "prompt": "Describe the last time you changed your mind about something important. Walk through what you used to believe and what shifted your thinking.",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["narrative_structure", "hedging_frequency", "self_reference_patterns"],
+      "baseline_compare": "full_text"
+    }
+  },
+  {
+    "id": "style_open_008",
+    "type": "style_open",
+    "language": "en",
+    "prompt": "If you could redesign the education system from scratch, what would be your top priority and why? Answer as if you are presenting to a group of skeptical policymakers.",
+    "max_tokens": 500,
+    "analysis": {
+      "extract": ["persuasion_techniques", "evidence_type", "rhetorical_devices"],
+      "baseline_compare": "full_text"
+    }
+  }
+]

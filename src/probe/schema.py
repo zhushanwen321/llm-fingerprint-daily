@@ -64,7 +64,7 @@ class StatisticalProbe(BaseModel):
 class CodingProbe(BaseModel):
     """coding 类型探针 -- 带评分规则"""
     id: str
-    type: Literal["coding_frontend"] = "coding_frontend"
+    type: Literal["coding_frontend", "coding_backend"] = "coding_frontend"
     language: str
     prompt: str
     max_tokens: int = 2048

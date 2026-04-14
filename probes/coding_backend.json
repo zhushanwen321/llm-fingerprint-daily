@@ -1,0 +1,100 @@
+[
+  {
+    "id": "coding_backend_001",
+    "type": "coding_backend",
+    "language": "en",
+    "prompt": "Implement a generic REST API rate limiter middleware in Python. Requirements: (1) Track requests per client IP. (2) Support configurable window size and max requests. (3) Return proper HTTP 429 with Retry-After header when rate limited. (4) Use a sliding window algorithm, not fixed window. (5) Thread-safe for concurrent requests. (6) Include a cleanup mechanism for expired entries.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["429", "Retry-After", "threading", "sliding_window", "X-Forwarded-For"],
+      "should_contain": ["deque", "Lock", "time.time()", "cleanup", "Content-Type", "lru_cache"],
+      "forbidden_patterns": ["time.sleep(", "while True"],
+      "check_points": [
+        "sliding window not fixed window",
+        "thread-safe implementation",
+        "correct 429 response format",
+        "Retry-After header calculation",
+        "cleanup expired entries",
+        "handles proxy headers for real IP"
+      ]
+    }
+  },
+  {
+    "id": "coding_backend_002",
+    "type": "coding_backend",
+    "language": "en",
+    "prompt": "Design a database schema for a multi-tenant e-commerce platform. Entities: tenants, users (belong to a tenant), products (belong to a tenant), orders (user places order, contains multiple products), order_items. Write SQL CREATE TABLE statements with: proper foreign keys, indexes for common queries, constraints (stock cannot be negative, price must be positive), and cascading rules. Also write a transaction that safely decrements product stock when an order is placed.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["FOREIGN KEY", "CREATE TABLE", "BEGIN", "COMMIT", "CHECK", "INDEX"],
+      "should_contain": ["REFERENCES", "ON DELETE", "ON UPDATE", "DECIMAL", "NOT NULL", "DEFAULT", "SERIAL", "ROW LOCK"],
+      "forbidden_patterns": ["DROP TABLE", "TRUNCATE", "GRANT ALL"],
+      "check_points": [
+        "multi-tenant isolation via tenant_id",
+        "stock decrement with race condition handling",
+        "proper cascade rules",
+        "check constraints on price and stock",
+        "indexes on foreign keys and query patterns"
+      ]
+    }
+  },
+  {
+    "id": "coding_backend_003",
+    "type": "coding_backend",
+    "language": "en",
+    "prompt": "Implement a retry mechanism with exponential backoff and jitter for a function that makes HTTP requests. Requirements: (1) Maximum 5 retries. (2) Initial delay of 1 second, doubling each retry. (3) Add random jitter to prevent thundering herd. (4) Only retry on 429, 500, 502, 503, 504 status codes. (5) Respect Retry-After header if present. (6) Return last error after all retries exhausted. (7) Log each retry attempt.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["exponential", "jitter", "429", "500", "503", "Retry-After", "max_retries"],
+      "should_contain": ["random.uniform", "time.sleep", "logging", "raise", "backoff", "decorator"],
+      "forbidden_patterns": ["while True", "goto"],
+      "check_points": [
+        "exponential backoff formula correct",
+        "jitter implementation prevents synchronization",
+        "respects Retry-After header",
+        "retries only on correct status codes",
+        "maximum retry limit enforced",
+        "proper error propagation"
+      ]
+    }
+  },
+  {
+    "id": "coding_backend_004",
+    "type": "coding_backend",
+    "language": "zh",
+    "prompt": "用 Python 实现一个轻量级的事件发射器 EventEmitter 类，模仿 Node.js 的 EventEmitter。要求：(1) 支持 on、once、off、emit 方法。(2) once 注册的监听器触发一次后自动移除。(3) 支持通配符事件名（例如 'user.*' 匹配 'user.login' 和 'user.logout'）。(4) emit 时按注册顺序同步执行监听器。(5) 某个监听器抛出异常时，不影响后续监听器执行，但需要收集所有异常在最后抛出。(6) 支持最大监听器数量限制，超出时打印警告。",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["on", "once", "off", "emit", "wildcard", "max_listeners"],
+      "should_contain": ["defaultdict", "fnmatch", "weakref", "Exception", "__listeners__"],
+      "forbidden_patterns": ["import events", "from events import"],
+      "check_points": [
+        "once 自动移除机制",
+        "通配符匹配正确性",
+        "异常不中断其他监听器",
+        "最大监听器警告",
+        "注册顺序执行"
+      ]
+    }
+  },
+  {
+    "id": "coding_backend_005",
+    "type": "coding_backend",
+    "language": "en",
+    "prompt": "Write a connection pool implementation for a hypothetical database client. Requirements: (1) Fixed pool size (configurable). (2) acquire() returns a connection or raises TimeoutError after configurable wait time. (3) release() returns a connection to the pool. (4) Health check: periodically ping idle connections and remove dead ones. (5) Graceful shutdown: close all connections when pool is destroyed. (6) Thread-safe. (7) Metrics: track active, idle, and waiting-for-connection counts.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["acquire", "release", "Semaphore", "Queue", "TimeoutError", "close"],
+      "should_contain": ["threading", "contextmanager", "__enter__", "__exit__", "health_check", "metrics"],
+      "forbidden_patterns": ["global ", "os._exit"],
+      "check_points": [
+        "bounded pool size",
+        "timeout on acquire",
+        "connection health validation",
+        "thread-safe operations",
+        "graceful shutdown with drain",
+        "metrics tracking"
+      ]
+    }
+  }
+]

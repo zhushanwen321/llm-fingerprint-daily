@@ -1,0 +1,107 @@
+[
+  {
+    "id": "consistency_001",
+    "type": "consistency",
+    "language": "mixed",
+    "variants": [
+      {
+        "label": "natural_language",
+        "prompt": "A farmer has 17 sheep. All but 9 run away. How many sheep does the farmer have left?"
+      },
+      {
+        "label": "code_description",
+        "prompt": "Given an array of 17 boolean values all set to True, set all values to False except the last 9. How many values remain True?"
+      },
+      {
+        "label": "mathematical",
+        "prompt": "Let S = {1, 2, 3, ..., 17}. Define R = S \\ T where |T| = 9 and T is a subset of S. What is |R|? Hint: this is a word problem about sheep disguised as set theory."
+      }
+    ],
+    "expected_consistency": "same_answer",
+    "max_tokens": 500
+  },
+  {
+    "id": "consistency_002",
+    "type": "consistency",
+    "language": "mixed",
+    "variants": [
+      {
+        "label": "natural_language",
+        "prompt": "Is it faster to fly or take a train from Beijing to Shanghai? Consider typical travel times including check-in and station arrival times."
+      },
+      {
+        "label": "code_description",
+        "prompt": "Compare two travel time functions: flight_time(distance, check_in_overhead) vs train_time(distance, station_overhead). For distance=1200km, which function returns the smaller total time? Use realistic parameters."
+      },
+      {
+        "label": "mathematical",
+        "prompt": "Given T_flight = d/v_f + t_checkin + t_security + t_travel_to_airport and T_train = d/v_t + t_station_buffer, where d=1200, v_f=800, v_t=300, solve for which is smaller using typical real-world values for the overhead terms."
+      }
+    ],
+    "expected_consistency": "same_answer",
+    "max_tokens": 500
+  },
+  {
+    "id": "consistency_003",
+    "type": "consistency",
+    "language": "mixed",
+    "variants": [
+      {
+        "label": "natural_language",
+        "prompt": "What is 0.1 + 0.2 in most programming languages? Explain why the result is not exactly 0.3."
+      },
+      {
+        "label": "code_description",
+        "prompt": "In JavaScript, evaluate 0.1 + 0.2 === 0.3. Explain the result and the underlying reason."
+      },
+      {
+        "label": "mathematical",
+        "prompt": "Let a = 1/10 and b = 2/10 in IEEE 754 double precision floating point. Compute a + b symbolically, then explain why the result differs from 3/10 when stored in binary."
+      }
+    ],
+    "expected_consistency": "same_answer",
+    "max_tokens": 500
+  },
+  {
+    "id": "consistency_004",
+    "type": "consistency",
+    "language": "mixed",
+    "variants": [
+      {
+        "label": "natural_language",
+        "prompt": "You have a 3-liter jug and a 5-liter jug. How do you measure exactly 4 liters of water? You can fill, empty, or pour water between the jugs."
+      },
+      {
+        "label": "code_description",
+        "prompt": "Implement a function that solves the water jug problem: given two jugs of capacities 3 and 5, find a sequence of operations (fill, empty, pour) to reach exactly 4 liters in one jug. Describe the algorithm and the solution steps."
+      },
+      {
+        "label": "mathematical",
+        "prompt": "Find integers x and y such that 3x + 5y = 4, where x represents net fills of the 3-unit container and y represents net fills of the 5-unit container. Describe a physical procedure corresponding to your solution."
+      }
+    ],
+    "expected_consistency": "same_answer",
+    "max_tokens": 500
+  },
+  {
+    "id": "consistency_005",
+    "type": "consistency",
+    "language": "mixed",
+    "variants": [
+      {
+        "label": "natural_language",
+        "prompt": "In a room of 23 people, what is the approximate probability that at least two share the same birthday? Is it closer to 10%, 50%, or 90%?"
+      },
+      {
+        "label": "code_description",
+        "prompt": "Write pseudocode for a simulation that estimates the probability of at least one shared birthday among 23 randomly selected people. Run through the logic: what probability would you expect?"
+      },
+      {
+        "label": "mathematical",
+        "prompt": "Compute P(no shared birthday among n=23 people) = product_{k=0}^{n-1} (365-k)/365. Then find 1 - P. Round to the nearest percentage point."
+      }
+    ],
+    "expected_consistency": "same_answer",
+    "max_tokens": 500
+  }
+]

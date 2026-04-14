@@ -1,0 +1,117 @@
+[
+  {
+    "id": "instruction_001",
+    "type": "instruction",
+    "language": "en",
+    "prompt": "Explain the water cycle in exactly 3 sentences. Each sentence must start with a different letter. Do not use any form of the verb 'to be'. End with a question mark.",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "max_words", "value": 60, "description": "Under 60 words total"},
+      {"type": "format", "value": "plain", "description": "Plain text, no structure"},
+      {"type": "no_markdown", "value": true, "description": "No markdown syntax"},
+      {"type": "max_length", "value": 300, "description": "Under 300 characters"},
+      {"type": "conclusion_first", "value": true, "description": "Lead with the conclusion"}
+    ]
+  },
+  {
+    "id": "instruction_002",
+    "type": "instruction",
+    "language": "en",
+    "prompt": "Write a JSON object with exactly 4 fields: name (string), age (integer between 1 and 150), hobbies (array of exactly 3 strings), and is_active (boolean). The name must be a real city. No extra fields allowed.",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "format", "value": "json", "description": "Valid JSON object"},
+      {"type": "field_names", "value": ["name", "age", "hobbies", "is_active"], "description": "Exactly these 4 fields"},
+      {"type": "no_markdown", "value": true, "description": "No markdown code fences"},
+      {"type": "language", "value": "en", "description": "English only"}
+    ]
+  },
+  {
+    "id": "instruction_003",
+    "type": "instruction",
+    "language": "zh",
+    "prompt": "用不超过40个汉字，按照以下顺序介绍太阳系：先说结论（太阳系有几颗行星），再列出所有行星名称，最后用一句话总结。不使用任何标点符号。",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "language", "value": "zh", "description": "只能使用中文"},
+      {"type": "max_words", "value": 40, "description": "不超过40个汉字"},
+      {"type": "no_punctuation", "value": true, "description": "不使用任何标点符号"},
+      {"type": "no_markdown", "value": true, "description": "不使用markdown"},
+      {"type": "conclusion_first", "value": true, "description": "结论优先"}
+    ]
+  },
+  {
+    "id": "instruction_004",
+    "type": "instruction",
+    "language": "en",
+    "prompt": "List 5 programming languages in alphabetical order. Each entry must be exactly one word. Use commas to separate them. The entire output must be a single line with no trailing comma.",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "format", "value": "csv", "description": "Comma-separated single line"},
+      {"type": "no_markdown", "value": true, "description": "No markdown"},
+      {"type": "max_words", "value": 10, "description": "Exactly 5 words plus commas"},
+      {"type": "language", "value": "en", "description": "English only"}
+    ]
+  },
+  {
+    "id": "instruction_005",
+    "type": "instruction",
+    "language": "zh",
+    "prompt": "写一首四行诗描述春天。每行恰好7个字。第一行和第四行必须押韵。诗中必须包含'花'和'风'两个字。不要使用任何标点符号。",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "language", "value": "zh", "description": "只能使用中文"},
+      {"type": "max_words", "value": 28, "description": "恰好28个字（4行x7字）"},
+      {"type": "no_punctuation", "value": true, "description": "不使用标点符号"},
+      {"type": "no_markdown", "value": true, "description": "不使用markdown"},
+      {"type": "format", "value": "plain", "description": "纯文本格式"}
+    ]
+  },
+  {
+    "id": "instruction_006",
+    "type": "instruction",
+    "language": "en",
+    "prompt": "Summarize the plot of Romeo and Juliet in reverse chronological order. Start with the ending and work backwards to the beginning. Use exactly 5 sentences. Each sentence must contain a year number.",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "max_words", "value": 100, "description": "Under 100 words"},
+      {"type": "format", "value": "plain", "description": "Plain text paragraphs"},
+      {"type": "no_markdown", "value": true, "description": "No markdown"},
+      {"type": "conclusion_first", "value": true, "description": "Start with the conclusion"}
+    ]
+  },
+  {
+    "id": "instruction_007",
+    "type": "instruction",
+    "language": "en",
+    "prompt": "Create a valid JSON array containing 3 objects. Each object must have a 'color' field (must be a valid CSS color name) and a 'hex' field (must be the correct hex code for that color, prefixed with #). Sort by hue.",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "format", "value": "json", "description": "Valid JSON array"},
+      {"type": "field_names", "value": ["color", "hex"], "description": "Each object has color and hex"},
+      {"type": "no_markdown", "value": true, "description": "No markdown code fences"},
+      {"type": "language", "value": "en", "description": "English color names"}
+    ]
+  },
+  {
+    "id": "instruction_008",
+    "type": "instruction",
+    "language": "zh",
+    "prompt": "用JSON格式回答以下问题：中国最长的三条河流是什么？JSON必须是数组，每个元素有两个字段：name（河流名称）和length_km（近似长度，整数）。按长度从长到短排序。不要使用markdown代码块。",
+    "max_tokens": 500,
+    "difficulty": "hard",
+    "constraints": [
+      {"type": "format", "value": "json", "description": "JSON数组格式"},
+      {"type": "field_names", "value": ["name", "length_km"], "description": "每个元素包含name和length_km"},
+      {"type": "no_markdown", "value": true, "description": "不使用markdown代码块"},
+      {"type": "language", "value": "zh", "description": "使用中文回答"}
+    ]
+  }
+]

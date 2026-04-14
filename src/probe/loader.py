@@ -23,6 +23,7 @@ _TYPE_MAP: dict[str, type] = {
     "instruction": SimpleProbe,
     "statistical": StatisticalProbe,
     "coding_frontend": CodingProbe,
+    "coding_backend": CodingProbe,
     "style_open": StyleProbe,
     "consistency": ConsistencyProbe,
 }
