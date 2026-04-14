@@ -1,7 +1,5 @@
 """配置加载器测试"""
 
-import os
-
 import pytest
 
 from src.config.loader import load_config
