@@ -155,7 +155,7 @@ pytest tests/test_config_schema.py -v
 
 - [ ] **Step 4: 运行测试确认通过**
 
-- [ ] **Step 5: 补充边界测试 — retry_intervals 超出取最后一个值、权重之和为 1.0 的校验**
+- [ ] **Step 5: 补充边界测试 — retry_intervals 超出取最后一个值、权重之和为 1.0 的校验、concurrency 约束（sum(provider.concurrency) <= max_llm_concurrent）**
 
 - [ ] **Step 6: 提交**
 
@@ -224,6 +224,8 @@ report:
 ---
 
 ## Phase 2: 执行引擎
+
+> **注意：** Phase 2 的集成测试依赖探针数据文件。如果 Task 7 需要真实探针数据进行测试，可先编写 Task 18 的前几类探针（instruction, statistical），其余探针数据可在 Phase 2 完成后再编写。
 
 ### Task 5: 存储层
 
@@ -305,7 +307,7 @@ async def test_retry_on_timeout():
 - Create: `src/engine/target_runner.py`
 - Test: `tests/test_target_runner.py`
 
-- [ ] **Step 1: 写测试 — mock LLMGateway，验证对每种 probe_type 的调用和结果存储**
+- [ ] **Step 1: 写测试 — mock LLMGateway，验证各 probe_type 的执行路径**
 
 ```python
 async def test_run_instruction_probes(tmp_path):
@@ -315,6 +317,24 @@ async def test_run_instruction_probes(tmp_path):
     result = await runner.run("test__model-a", "instruction", probes, run_id="20260414100003")
     assert result.meta.probe_type == "instruction"
     assert len(result.results) == len(probes)
+
+async def test_run_consistency_calls_all_variants(tmp_path):
+    # consistency 探针：验证对每个 variant 都调用了 API
+    gateway = MockGateway()
+    storage = Storage(base_dir=tmp_path)
+    runner = TargetRunner(gateway, storage)
+    result = await runner.run("test__model-a", "consistency", consistency_probes, run_id="20260414100003")
+    # 3 个 variants → 每个探针产生 3 个 result
+    assert len(result.results) == len(consistency_probes) * 3
+
+async def test_run_statistical_samples_n_times(tmp_path):
+    # statistical 探针：验证对同一 prompt 调用 N 次
+    gateway = MockGateway()
+    storage = Storage(base_dir=tmp_path)
+    runner = TargetRunner(gateway, storage, statistical_samples=5)
+    result = await runner.run("test__model-a", "statistical", stat_probes, run_id="20260414100003")
+    # 2 个 prompt * 5 次 = 10 个 result
+    assert len(result.results) == len(stat_probes) * 5
 ```
 
 - [ ] **Step 2: 实现 target_runner.py** — 对单个 target 的单个 probe_type 执行：
@@ -337,7 +357,23 @@ async def test_run_instruction_probes(tmp_path):
 - Create: `src/engine/orchestrator.py`
 - Test: `tests/test_orchestrator.py`
 
-- [ ] **Step 1: 写测试 — 验证 run_id 统一生成 + 多 provider 并行**
+- [ ] **Step 1: 写测试 — 验证 run_id 统一生成 + 多 provider 并行 + 首次自动设基线**
+
+```python
+async def test_first_run_sets_baseline(tmp_path):
+    orchestrator = Orchestrator(config, mock_gateway, storage)
+    run_id = await orchestrator.run()
+    baseline = await storage.get_baseline("test__model-a")
+    assert baseline == run_id  # 首次 run 自动成为基线
+
+async def test_second_run_does_not_override_baseline(tmp_path):
+    # 先跑一次（设为基线），再跑一次，基线不变
+    pass
+
+async def test_error_results_skipped_in_analysis():
+    # 模拟部分探针返回 error，验证分析跳过 error 并标注 "skipped: N errors"
+    pass
+```
 
 - [ ] **Step 2: 实现 provider_runner.py** — 对单个 provider 下的所有 target 执行，用 provider 级 Semaphore 控制并发
 
@@ -446,6 +482,7 @@ async def test_run_instruction_probes(tmp_path):
   - `test(current_samples, baseline_samples) -> DimensionScore`
   - 输出长度分布：KS 检验 + 25 桶直方图 JS 散度
   - token 频率分布：top-100 token 频率 JS 散度
+  - tokenization 方案：英文按空格分词 + 中文按单字符分词（`re.findall(r'\w+|[^\w\s]', text)`），不引入 tiktoken 依赖
 
 - [ ] **Step 3: 运行测试确认通过**
 
@@ -539,6 +576,8 @@ def test_single_model_report_contains_charts(tmp_path):
   - `generate_model_report(model_dir, all_analysis) -> str` — 单模型报告
   - `generate_global_report(model_dirs) -> str` — 全局报告
   - 读取 model_dir 下所有 analysis/*.json 组织数据
+  - 双写逻辑：生成 `latest.html`（覆盖）+ `report_{date}_{run_id}.html`（归档）
+  - Chart.js 数据注入：在 Jinja2 模板中用 `<script>` 标签内嵌 JSON 数据
 
 - [ ] **Step 4: 运行测试确认通过**
 
@@ -555,11 +594,11 @@ def test_single_model_report_contains_charts(tmp_path):
 - [ ] **Step 1: 写测试 — CLI 子命令注册验证**
 
 - [ ] **Step 2: 实现 main.py** — typer app：
-  - `fingerprint run [--model] [--type]` — 调用 Orchestrator
-  - `fingerprint report [path] [--all]` — 调用 ReportGenerator
-  - `fingerprint history [path]` — 读取分析历史并打印摘要
-  - `fingerprint serve` — 启动 Scheduler
-  - `fingerprint baseline --run-id --model` — 更新基线
+  - `fingerprint run [--model] [--type]` — 加载配置 → Orchestrator.run() → 打印摘要
+  - `fingerprint report [path] [--all]` — 调用 ReportGenerator，`--all` 时遍历 data/ 下所有模型目录
+  - `fingerprint history [path]` — 读取 model_dir 下所有 analysis/*.json，按时间排序打印评分表格到终端
+  - `fingerprint serve` — 加载配置 → FingerprintScheduler.start() → 前台运行，Ctrl+C 优雅停止
+  - `fingerprint baseline --run-id XXX --model XXX` — Storage.set_baseline(model_dir, run_id, set_by="manual")
 
 - [ ] **Step 3: 运行测试确认通过**
 
@@ -614,3 +653,14 @@ async def test_full_pipeline(tmp_path):
 - [ ] **Step 3: 修复发现的问题**
 
 - [ ] **Step 4: 提交**
+
+---
+
+## Out of Scope（第二阶段实现）
+
+以下功能在 spec 中定义但不在本次实施计划中：
+
+- **probespec（ProbeSpec 行为谱分析）**：DCT 提取行为谱指纹，需要 `src/analysis/probespec.py` 和 `probes/probespec.json`
+- **daemon 模式**：`fingerprint serve` 不自带 daemon 化，用户自行搭配 nohup/launchd/systemd
+- **logprobs 灰盒探针**：已从设计中移除
+- **agentic 能力探针**：延后实现

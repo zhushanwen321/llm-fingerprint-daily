@@ -200,7 +200,40 @@ report:
   "language": "en",
   "prompt": "...",
   "max_tokens": 500,
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "constraints": [
+    {"type": "language", "value": "en", "description": "只使用英文回答"},
+    {"type": "max_words", "value": 50, "description": "回答不超过50词"},
+    {"type": "format", "value": "json", "description": "严格JSON格式"},
+    {"type": "no_markdown", "value": true, "description": "不使用markdown标记"},
+    {"type": "field_names", "value": ["answer", "confidence"], "description": "JSON字段名必须为answer和confidence"}
+  ]
+}]
+```
+
+**constraint type 定义：**
+
+| type | value 类型 | 检查方法 |
+|------|-----------|----------|
+| `language` | str ("en"/"zh") | 检测输出中是否包含目标语言字符 |
+| `max_words` | int | 统计词数（英文按空格，中文按字符） |
+| `format` | str ("json"/"xml") | 尝试解析为对应格式 |
+| `no_markdown` | bool | 检测是否包含 `**`、`#`、`` ` `` 等 markdown 符号 |
+| `field_names` | list[str] | 解析 JSON 后检查字段名是否匹配 |
+| `max_length` | int | 输出字符数 |
+| `no_punctuation` | bool | 检测是否包含标点 |
+| `conclusion_first` | bool | 检测首句是否为结论性陈述 |
+
+**statistical 探针无 constraints，只有 prompt + max_tokens：**
+
+```json
+[{
+  "id": "stat_001",
+  "type": "statistical",
+  "language": "en",
+  "prompt": "Write a short paragraph about the benefits of reading.",
+  "max_tokens": 300,
+  "difficulty": "easy"
 }]
 ```
 
