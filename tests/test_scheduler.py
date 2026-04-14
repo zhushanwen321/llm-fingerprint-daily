@@ -92,7 +92,7 @@ class TestCronJobRegistration:
         # APScheduler 3.x add_job 的 func 是第一个位置参数
         func = mock_instance.add_job.call_args.args[0]
         import asyncio
-        asyncio.get_event_loop().run_until_complete(func())
+        asyncio.run(func())
         orchestrator.run.assert_awaited_once()
 
     @patch("src.scheduler.core.AsyncIOScheduler")
