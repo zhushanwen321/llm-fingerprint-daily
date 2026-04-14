@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal, Union
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 # ---- 公共子模型 ----

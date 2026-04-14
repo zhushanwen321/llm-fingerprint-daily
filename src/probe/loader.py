@@ -9,7 +9,6 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from src.probe.schema import (
-    Probe,
     SimpleProbe,
     StatisticalProbe,
     CodingProbe,

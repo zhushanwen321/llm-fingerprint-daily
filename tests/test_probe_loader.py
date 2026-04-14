@@ -5,10 +5,6 @@ import pytest
 from pathlib import Path
 
 from src.probe.schema import (
-    Constraint,
-    Scoring,
-    Analysis,
-    Variant,
     SimpleProbe,
     StatisticalProbe,
     CodingProbe,
