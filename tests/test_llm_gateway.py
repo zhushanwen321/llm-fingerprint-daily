@@ -62,8 +62,11 @@ class MockResponse:
 
     def raise_for_status(self):
         if self.status_code >= 400:
+            # httpx.HTTPStatusError 需要 Request/Response，此处仅模拟失败场景
             raise httpx.HTTPStatusError(
-                f"{self.status_code}", request=None, response=self
+                f"{self.status_code}",
+                request=httpx.Request("POST", "https://test"),
+                response=httpx.Response(self.status_code),
             )
 
 
@@ -75,7 +78,7 @@ class TestCallSuccess:
         config = _make_config()
         gateway = LLMGateway(config)
 
-        async def mock_post(*args, **kwargs):
+        async def mock_post(*_, **__):
             return MockResponse(text="hello world")
 
         gateway._client = type("Client", (), {"post": mock_post})()
@@ -101,7 +104,7 @@ class TestRetryOnTimeout:
 
         call_count = 0
 
-        async def mock_post(*args, **kwargs):
+        async def mock_post(*_, **__):
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -121,7 +124,7 @@ class TestRetryOnTimeout:
         config = _make_config(max_retries=2, retry_intervals=[0.01])
         gateway = LLMGateway(config)
 
-        async def mock_post(*args, **kwargs):
+        async def mock_post(*_, **__):
             raise httpx.TimeoutException("timeout")
 
         gateway._client = type("Client", (), {"post": mock_post})()
@@ -142,7 +145,7 @@ class TestRetryOnHttpError:
 
         call_count = 0
 
-        async def mock_post(*args, **kwargs):
+        async def mock_post(*_, **__):
             nonlocal call_count
             call_count += 1
             if call_count < 2:
@@ -169,7 +172,7 @@ class TestConcurrencyControl:
 
         timestamps: list[float] = []
 
-        async def slow_post(*args, **kwargs):
+        async def slow_post(*_, **__):
             timestamps.append(time.monotonic())
             await asyncio.sleep(0.05)
             return MockResponse(text="done")
