@@ -63,6 +63,7 @@ class LLMGateway:
         model: str,
         messages: list[dict],
         max_tokens: int = 1024,
+        temperature: float = 0,
     ) -> RawResponse:
         """调用指定 provider 的 LLM，带重试和并发控制"""
         provider_cfg = self._config.providers[provider]
@@ -71,7 +72,7 @@ class LLMGateway:
         async with self._global_sem:
             async with provider_sem:
                 return await self._call_with_retry(
-                    provider_cfg, model, messages, max_tokens
+                    provider_cfg, model, messages, max_tokens, temperature
                 )
 
     async def _call_with_retry(
@@ -80,6 +81,7 @@ class LLMGateway:
         model: str,
         messages: list[dict],
         max_tokens: int,
+        temperature: float = 0,
     ) -> RawResponse:
         max_retries = self._config.evaluation.max_retries
         intervals = self._config.evaluation.retry_intervals
@@ -88,7 +90,7 @@ class LLMGateway:
         for attempt in range(1, max_retries + 1):
             try:
                 return await self._single_request(
-                    provider_cfg, model, messages, max_tokens
+                    provider_cfg, model, messages, max_tokens, temperature
                 )
             except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
                 last_exc = exc
@@ -108,6 +110,7 @@ class LLMGateway:
         model: str,
         messages: list[dict],
         max_tokens: int,
+        temperature: float = 0,
     ) -> RawResponse:
         client = await self._ensure_client()
         url = f"{provider_cfg.base_url}/v1/messages"
@@ -121,7 +124,7 @@ class LLMGateway:
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
-            "temperature": 0,
+            "temperature": temperature,
         }
 
         t0 = time.monotonic()
