@@ -118,7 +118,7 @@ def serve(
         loop.add_signal_handler(sig, _shutdown, sig)
 
     typer.echo("调度服务已启动，按 Ctrl+C 停止")
-    scheduler.start()
+    scheduler.start(loop)
     loop.run_forever()
     typer.echo("调度服务已停止")
 

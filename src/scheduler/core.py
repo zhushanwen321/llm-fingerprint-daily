@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -20,8 +21,13 @@ class FingerprintScheduler:
         self._orchestrator = orchestrator
         self._scheduler = AsyncIOScheduler()
 
-    def start(self) -> None:
+    def start(self, event_loop: asyncio.AbstractEventLoop | None = None) -> None:
         """注册 cron job 并启动调度器"""
+        # AsyncIOScheduler.start() 内部调用 get_running_loop()，
+        # 若外部已创建 loop 但尚未 run_forever，需提前注入避免 RuntimeError
+        if event_loop is not None:
+            self._scheduler._eventloop = event_loop
+
         eval_cfg = self._config.evaluation
         tz = eval_cfg.timezone
 
