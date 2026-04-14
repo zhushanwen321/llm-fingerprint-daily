@@ -9,6 +9,11 @@
 git clone <repo-url>
 cd llm-fingerprint-daily
 
+# 创建并激活虚拟环境
+python -m venv .venv
+source .venv/bin/activate        # macOS/Linux
+# .venv\Scripts\activate         # Windows
+
 # 安装依赖（运行时 + 开发）
 pip install -e ".[dev]"
 ```
