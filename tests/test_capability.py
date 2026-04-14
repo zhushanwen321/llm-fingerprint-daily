@@ -2,12 +2,11 @@
 
 import pytest
 
-from src.probe.schema import SimpleProbe, CodingProbe, Constraint, Scoring
+from src.probe.schema import SimpleProbe, CodingProbe
 from src.analysis.capability import (
     check_instruction,
     check_coding,
     compare,
-    DimensionScore,
 )
 
 

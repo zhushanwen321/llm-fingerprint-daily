@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.probe.schema import SimpleProbe, CodingProbe
 from src.analysis._constraint import check as _check_constraint
