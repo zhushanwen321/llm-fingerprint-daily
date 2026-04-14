@@ -1,0 +1,97 @@
+[
+  {
+    "id": "coding_frontend_001",
+    "type": "coding_frontend",
+    "language": "en",
+    "prompt": "Write a React hook called useDebounce that takes a value and a delay in milliseconds. It should return the debounced value. Handle edge cases: delay of 0 should return the value immediately, negative delay should be treated as 0, and cleanup must prevent memory leaks. Do not use any external libraries.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["useEffect", "useRef", "setTimeout", "clearTimeout", "useMemo"],
+      "should_contain": ["return", "TypeScript", "as number", "dependencies"],
+      "forbidden_patterns": ["any", "lodash", "debounce("],
+      "check_points": [
+        "handles delay=0 edge case",
+        "handles negative delay",
+        "proper cleanup on unmount",
+        "stable reference identity",
+        "updates when value changes within delay"
+      ]
+    }
+  },
+  {
+    "id": "coding_frontend_002",
+    "type": "coding_frontend",
+    "language": "en",
+    "prompt": "Create a CSS-only accordion component. Requirements: (1) No JavaScript allowed. (2) Exactly 3 sections, each with a unique heading and 2-3 sentences of content. (3) Only one section can be open at a time. (4) Smooth expand/collapse animation. (5) Accessible via keyboard. (6) Works in Chrome, Firefox, and Safari.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["details", "summary", "transition", "overflow: hidden"],
+      "should_contain": ["max-height", "animation", ":focus-visible", "aria", "prefers-reduced-motion"],
+      "forbidden_patterns": ["onclick", "addEventListener", "javascript:", "jQuery"],
+      "check_points": [
+        "no JS event handlers",
+        "only one open at a time",
+        "smooth animation",
+        "keyboard accessible",
+        "cross-browser compatible"
+      ]
+    }
+  },
+  {
+    "id": "coding_frontend_003",
+    "type": "coding_frontend",
+    "language": "en",
+    "prompt": "Implement a virtual scrolling list component that efficiently renders a list of 100,000 items. Each item displays an index and a random color. The visible area shows approximately 20 items. Include: (1) Proper scrollbar calculation. (2) Smooth scrolling performance. (3) Correct item positioning. (4) Window resize handling.",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["overflow-y: auto", "position: absolute", "transform: translateY", "IntersectionObserver"],
+      "should_contain": ["requestAnimationFrame", "throttle", "ResizeObserver", "will-change", "contain: layout"],
+      "forbidden_patterns": ["document.getElementsByTagName", "innerHTML +="],
+      "check_points": [
+        "calculates total height correctly",
+        "only renders visible items + buffer",
+        "handles rapid scrolling",
+        "correct scrollbar proportion",
+        "resize handling"
+      ]
+    }
+  },
+  {
+    "id": "coding_frontend_004",
+    "type": "coding_frontend",
+    "language": "zh",
+    "prompt": "实现一个 Vue 3 组合式函数 useIntersectionObserver，用于检测元素是否进入视口。要求：(1) 支持配置 threshold 和 rootMargin。(2) 支持同时观察多个元素。(3) 组件卸载时自动断开观察。(4) 提供暂停和恢复观察的方法。(5) 返回每个元素的可见性状态和可见比例。",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["IntersectionObserver", "onUnmounted", "ref", "watchEffect"],
+      "should_contain": ["threshold", "rootMargin", "disconnect", "observe", "isIntersecting", "intersectionRatio"],
+      "forbidden_patterns": ["document.querySelector(", "window.addEventListener('scroll'"],
+      "check_points": [
+        "支持多元素观察",
+        "自动清理观察器",
+        "暂停和恢复功能",
+        "返回可见比例",
+        "响应式状态更新"
+      ]
+    }
+  },
+  {
+    "id": "coding_frontend_005",
+    "type": "coding_frontend",
+    "language": "en",
+    "prompt": "Build a form validation utility function that validates an object against a schema. Support these rules: required, minLength, maxLength, pattern (regex), custom (validator function). Return an object with isValid boolean and an errors object where keys are field names and values are error messages. Handle nested objects with dot notation (e.g., 'address.city').",
+    "max_tokens": 2048,
+    "scoring": {
+      "must_contain": ["required", "minLength", "maxLength", "pattern", "isValid", "errors"],
+      "should_contain": ["custom", "nested", "dot notation", "reduce", "split('.')"],
+      "forbidden_patterns": ["eval(", "any[]", "Function("],
+      "check_points": [
+        "handles nested field access",
+        "multiple errors per field",
+        "custom validator support",
+        "returns structured error object",
+        "edge case: null/undefined fields"
+      ]
+    }
+  }
+]

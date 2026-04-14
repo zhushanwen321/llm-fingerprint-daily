@@ -1,0 +1,26 @@
+[
+  {
+    "id": "statistical_001",
+    "type": "statistical",
+    "language": "en",
+    "prompt": "Complete this sentence in exactly 10 words: The most important quality in a leader is",
+    "max_tokens": 300,
+    "difficulty": "easy"
+  },
+  {
+    "id": "statistical_002",
+    "type": "statistical",
+    "language": "en",
+    "prompt": "Pick a random integer between 1 and 100, then write one sentence explaining why you chose that number.",
+    "max_tokens": 300,
+    "difficulty": "easy"
+  },
+  {
+    "id": "statistical_003",
+    "type": "statistical",
+    "language": "zh",
+    "prompt": "用一个中文成语形容你对未来的看法，然后用一句话解释你选择这个成语的原因。",
+    "max_tokens": 300,
+    "difficulty": "easy"
+  }
+]
