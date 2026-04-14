@@ -27,11 +27,11 @@ class _Gateway:
 
     async def call(
         self,
-        provider: str,
-        model: str,
-        messages: list[dict],
-        max_tokens: int = 1024,
-        temperature: float = 0,
+        _provider: str,
+        _model: str,
+        _messages: list[dict],
+        _max_tokens: int = 1024,
+        _temperature: float = 0,
     ): ...
 
 
