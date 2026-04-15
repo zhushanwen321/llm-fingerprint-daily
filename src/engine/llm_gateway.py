@@ -87,6 +87,9 @@ class LLMGateway:
         intervals = self._config.evaluation.retry_intervals
         last_exc: Exception | None = None
 
+        if max_retries < 1:
+            raise ValueError("max_retries must be >= 1")
+
         for attempt in range(1, max_retries + 1):
             try:
                 return await self._single_request(

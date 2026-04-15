@@ -51,8 +51,10 @@ def list_history(data_dir: str, model_dir: str | None = None) -> list[dict]:
 
     if model_dir:
         dirs = [base / model_dir]
-    else:
+    elif base.exists():
         dirs = [d for d in base.iterdir() if d.is_dir()]
+    else:
+        return []
 
     results: list[dict] = []
     for d in dirs:
@@ -82,13 +84,15 @@ def generate_report(
     gen = ReportGenerator(output_dir=output_dir)
 
     if all_models:
-        model_dirs = [d for d in base.iterdir() if d.is_dir()]
+        if base.exists():
+            model_dirs = [d for d in base.iterdir() if d.is_dir()]
+        else:
+            model_dirs = []
         gen.generate_global_report(model_dirs)
     elif model_path:
         gen.generate_and_save(Path(model_path))
     else:
-        # 默认取第一个模型目录
-        model_dirs = [d for d in base.iterdir() if d.is_dir()]
+        model_dirs = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
         if model_dirs:
             gen.generate_and_save(model_dirs[0])
 

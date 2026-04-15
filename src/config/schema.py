@@ -25,6 +25,7 @@ class ModelEntry(BaseModel):
 class TargetEntry(BaseModel):
     """评测目标"""
 
+    provider: str
     model: str
     enabled: bool = True
     baseline_run_id: str | None = None

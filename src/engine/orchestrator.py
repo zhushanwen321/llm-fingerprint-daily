@@ -69,35 +69,35 @@ class Orchestrator:
             if t.enabled and (model_filter is None or t.model == model_filter)
         ]
 
-        # 按 provider 分组
-        grouped: dict[str, list[str]] = defaultdict(list)
+        # 按 provider 分组，构造内部 model_dir = "provider__model"
+        grouped: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for t in targets:
-            provider = t.model.split("__", 1)[0]
-            grouped[provider].append(t.model)
+            model_dir = f"{t.provider}__{t.model}"
+            grouped[t.provider].append((model_dir, t.model))
 
         # 为每个 provider 构建 ProviderRunner 并并行执行
         tasks = []
-        for provider, model_dirs in grouped.items():
+        for provider, model_entries in grouped.items():
             concurrency = self._config.providers[provider].concurrency
             runner = ProviderRunner(
                 provider, concurrency, self._gateway, self._storage,
                 eval_cfg.statistical_samples,
             )
-            # 将 model_dirs 转换为 ProviderRunner.run 所需的格式
             runner_targets = []
-            for md in model_dirs:
+            for model_dir, _model in model_entries:
                 pt_list = [pt for pt in probe_types if pt in all_probes]
                 probes_map = {pt: all_probes.get(pt, []) for pt in pt_list}
-                runner_targets.append((md, pt_list, probes_map))
+                runner_targets.append((model_dir, pt_list, probes_map))
             tasks.append(runner.run(runner_targets, run_id))
 
         await asyncio.gather(*tasks)
 
         # 首次运行自动设置 baseline
         for t in targets:
-            current = await self._storage.get_baseline(t.model)
+            model_dir = f"{t.provider}__{t.model}"
+            current = await self._storage.get_baseline(model_dir)
             if current is None:
-                await self._storage.set_baseline(t.model, run_id, set_by="auto")
+                await self._storage.set_baseline(model_dir, run_id, set_by="auto")
 
         logger.info("run %s completed, %d targets executed", run_id, len(targets))
         return run_id

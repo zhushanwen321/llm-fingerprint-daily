@@ -37,10 +37,12 @@ evaluation:
   timeout: 60
   statistical_samples: 20
   targets:
-    - model: "claude-sonnet-4-20250514"
+    - provider: anthropic
+      model: "claude-sonnet-4-20250514"
       enabled: true
       baseline_run_id: null
-    - model: "gpt-4o"
+    - provider: openrouter
+      model: "gpt-4o"
       enabled: true
       baseline_run_id: null
 
