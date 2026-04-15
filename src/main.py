@@ -11,10 +11,17 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import signal
 from pathlib import Path
 
 import typer
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 from src.cli_service import (
     generate_report,

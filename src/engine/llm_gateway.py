@@ -1,18 +1,20 @@
 """LLM Gateway — 系统唯一的 LLM API 调用出口。
 
-使用两层 Semaphore 控制并发：
+使用 Semaphore + rate limiter 双重控制：
   全局 Semaphore: 限制系统整体并发数
   Provider Semaphore: 限制单个 provider 的并发数
+  Provider Rate Limiter: 限制单个 provider 的请求速率（RPM）
 
-调用 Anthropic Messages API 格式:
-  POST {base_url}/v1/messages
-  Headers: x-api-key, anthropic-version, content-type
+并发语义：
+  Semaphore 在实际 HTTP 请求期间持有（包括 streaming），
+  重试等待期间释放 Semaphore，避免浪费并发槽位。
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import random
 import time
 
 import httpx
@@ -40,6 +42,32 @@ class RawResponse:
         self.stop_reason = stop_reason
 
 
+class _RateLimiter:
+    """滑动窗口速率限制器 — 控制单位时间内的请求数（RPM）"""
+
+    def __init__(self, max_rpm: int) -> None:
+        self._max_rpm = max_rpm
+        self._timestamps: list[float] = []
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        """等待直到可以发送下一个请求（不超过 RPM 限制）"""
+        while True:
+            async with self._lock:
+                now = time.monotonic()
+                # 清理 60 秒前的记录
+                cutoff = now - 60.0
+                self._timestamps = [t for t in self._timestamps if t > cutoff]
+                if len(self._timestamps) < self._max_rpm:
+                    self._timestamps.append(now)
+                    return
+                # 计算需要等待的时间
+                oldest_in_window = self._timestamps[0]
+                wait_time = max(0.01, oldest_in_window + 60.0 - now + 0.1)
+            # 在 lock 外等待，允许其他协程推进
+            await asyncio.sleep(wait_time)
+
+
 class LLMGateway:
     def __init__(self, config: AppConfig) -> None:
         self._config = config
@@ -48,6 +76,11 @@ class LLMGateway:
         self._provider_sems: dict[str, asyncio.Semaphore] = {
             name: asyncio.Semaphore(p.concurrency)
             for name, p in config.providers.items()
+        }
+        # 每个 provider 独立的速率限制器
+        self._provider_rate_limiters: dict[str, _RateLimiter] = {
+            name: _RateLimiter(p.rpm) for name, p in config.providers.items()
+            if p.rpm > 0
         }
         # httpx.AsyncClient 由外部注入或延迟创建
         self._client: httpx.AsyncClient | None = None
@@ -65,45 +98,57 @@ class LLMGateway:
         max_tokens: int = 1024,
         temperature: float = 0,
     ) -> RawResponse:
-        """调用指定 provider 的 LLM，带重试和并发控制"""
+        """调用指定 provider 的 LLM，带重试和并发控制。
+
+        并发控制流程：
+          1. 等待 provider 级别的速率限制
+          2. 获取 global sem → provider sem
+          3. 发送请求
+          4. 如果失败，释放所有 semaphore 后 sleep，然后回到步骤 2 重试
+        """
         provider_cfg = self._config.providers[provider]
-        provider_sem = self._provider_sems[provider]
-
-        async with self._global_sem:
-            async with provider_sem:
-                return await self._call_with_retry(
-                    provider_cfg, model, messages, max_tokens, temperature
-                )
-
-    async def _call_with_retry(
-        self,
-        provider_cfg,
-        model: str,
-        messages: list[dict],
-        max_tokens: int,
-        temperature: float = 0,
-    ) -> RawResponse:
         max_retries = self._config.evaluation.max_retries
         intervals = self._config.evaluation.retry_intervals
-        last_exc: Exception | None = None
+        # 请求完成后在 semaphore 内等待的间隔，确保两次请求间至少间隔这么久
+        req_interval = getattr(provider_cfg, "request_interval", 0)
 
         if max_retries < 1:
             raise ValueError("max_retries must be >= 1")
 
+        last_exc: Exception | None = None
+
         for attempt in range(1, max_retries + 1):
-            try:
-                return await self._single_request(
-                    provider_cfg, model, messages, max_tokens, temperature
+            # 速率限制（在 semaphore 外等待，不占用并发槽位）
+            rate_limiter = self._provider_rate_limiters.get(provider)
+            if rate_limiter:
+                await rate_limiter.acquire()
+            # 获取并发控制
+            async with self._global_sem:
+                async with self._provider_sems[provider]:
+                    try:
+                        result = await self._single_request(
+                            provider_cfg, model, messages, max_tokens, temperature
+                        )
+                        # 成功后等待间隔再释放 semaphore
+                        if req_interval > 0:
+                            await asyncio.sleep(req_interval)
+                        return result
+                    except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+                        last_exc = exc
+                        # 失败后也等待间隔再释放 semaphore
+                        if req_interval > 0:
+                            await asyncio.sleep(req_interval)
+
+            # 重试等待在 semaphore 外部执行，不占用并发槽位
+            if attempt < max_retries:
+                wait = self._config.get_retry_interval(intervals, attempt)
+                jitter = random.uniform(0, wait * 0.5)
+                total_wait = wait + jitter
+                logger.warning(
+                    "attempt %d failed (%s), retrying in %.1fs (jitter %.1fs)",
+                    attempt, last_exc, wait, jitter,
                 )
-            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
-                last_exc = exc
-                if attempt < max_retries:
-                    wait = self._config.get_retry_interval(intervals, attempt)
-                    logger.warning(
-                        "attempt %d failed (%s), retrying in %.1fs",
-                        attempt, exc, wait,
-                    )
-                    await asyncio.sleep(wait)
+                await asyncio.sleep(total_wait)
 
         raise last_exc  # type: ignore[misc]
 

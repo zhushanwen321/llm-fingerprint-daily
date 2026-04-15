@@ -12,8 +12,10 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-_BASE_DIR = Path(__file__).resolve().parent.parent.parent
-_TEMPLATES_DIR = _BASE_DIR / "templates"
+# 优先查找包内 templates（pip install 场景），回退到项目根目录
+_PKG_TEMPLATES = Path(__file__).resolve().parent / "templates"
+_ROOT_TEMPLATES = Path(__file__).resolve().parent.parent.parent / "templates"
+_TEMPLATES_DIR = _PKG_TEMPLATES if _PKG_TEMPLATES.is_dir() else _ROOT_TEMPLATES
 
 
 class ReportGenerator:

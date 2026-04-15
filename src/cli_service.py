@@ -78,22 +78,32 @@ def generate_report(
     all_models: bool = False,
 ) -> str:
     """生成报告并返回输出路径"""
+    from datetime import datetime, timezone
+
     from src.report.generator import ReportGenerator
 
     base = Path(data_dir) / "data"
     gen = ReportGenerator(output_dir=output_dir)
 
+    # 发现所有模型目录
+    model_dirs = sorted(
+        [d for d in base.iterdir() if d.is_dir()]
+    ) if base.exists() else []
+
     if all_models:
-        if base.exists():
-            model_dirs = [d for d in base.iterdir() if d.is_dir()]
-        else:
-            model_dirs = []
-        gen.generate_global_report(model_dirs)
-    elif model_path:
+        # 全局对比报告：保存 global_latest.html + 归档
+        html = gen.generate_global_report(model_dirs)
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        (out_path / "global_latest.html").write_text(html, encoding="utf-8")
+        date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        (out_path / f"global_{date_str}.html").write_text(html, encoding="utf-8")
+    elif model_path and model_path != ".":
+        # 指定模型目录
         gen.generate_and_save(Path(model_path))
     else:
-        model_dirs = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
-        if model_dirs:
-            gen.generate_and_save(model_dirs[0])
+        # 无指定路径或 path="."：为每个模型生成报告
+        for md in model_dirs:
+            gen.generate_and_save(md)
 
     return output_dir

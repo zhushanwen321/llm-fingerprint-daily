@@ -14,7 +14,8 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 
-from src.config.schema import AppConfig
+from src.analysis.analyzer import analyze
+from src.config.schema import AppConfig, EvaluationConfig
 from src.engine.provider_runner import ProviderRunner
 from src.engine.storage import Storage
 from src.probe.loader import load_probes
@@ -78,9 +79,8 @@ class Orchestrator:
         # 为每个 provider 构建 ProviderRunner 并并行执行
         tasks = []
         for provider, model_entries in grouped.items():
-            concurrency = self._config.providers[provider].concurrency
             runner = ProviderRunner(
-                provider, concurrency, self._gateway, self._storage,
+                provider, self._gateway, self._storage,
                 eval_cfg.statistical_samples,
             )
             runner_targets = []
@@ -99,5 +99,58 @@ class Orchestrator:
             if current is None:
                 await self._storage.set_baseline(model_dir, run_id, set_by="auto")
 
+        # 对每个模型执行分析并保存结果
+        for t in targets:
+            model_dir = f"{t.provider}__{t.model}"
+            await self._analyze_model(model_dir, run_id, eval_cfg)
+
         logger.info("run %s completed, %d targets executed", run_id, len(targets))
         return run_id
+
+    async def _analyze_model(
+        self,
+        model_dir: str,
+        run_id: str,
+        eval_cfg: EvaluationConfig,
+    ) -> None:
+        """加载当前 run 和 baseline 数据，执行分析并保存"""
+        import json
+        from dataclasses import asdict
+
+        # 加载当前 run 的所有 probe_type 数据
+        current_runs: dict[str, dict] = {}
+        model_path = self._storage._model_path(model_dir)
+        if model_path.exists():
+            for pt_dir in model_path.iterdir():
+                if not pt_dir.is_dir() or pt_dir.name == "analysis":
+                    continue
+                run_file = pt_dir / f"{run_id}.json"
+                if run_file.exists():
+                    current_runs[pt_dir.name] = json.loads(
+                        run_file.read_text(encoding="utf-8")
+                    )
+
+        if not current_runs:
+            return
+
+        # 加载 baseline 数据
+        baseline_runs: dict[str, dict] | None = None
+        baseline_run_id = await self._storage.get_baseline(model_dir)
+        if baseline_run_id and baseline_run_id != run_id:
+            baseline_runs = {}
+            for pt_dir in model_path.iterdir():
+                if not pt_dir.is_dir() or pt_dir.name == "analysis":
+                    continue
+                run_file = pt_dir / f"{baseline_run_id}.json"
+                if run_file.exists():
+                    baseline_runs[pt_dir.name] = json.loads(
+                        run_file.read_text(encoding="utf-8")
+                    )
+
+        result = analyze(current_runs, baseline_runs, eval_cfg)
+        analysis_dict = asdict(result)
+        await self._storage.save_analysis(model_dir, run_id, analysis_dict)
+        logger.info(
+            "analysis saved: %s run=%s score=%.4f alert=%s",
+            model_dir, run_id, result.overall_score, result.alert_level,
+        )

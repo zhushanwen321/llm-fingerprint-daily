@@ -12,6 +12,8 @@ class ProviderConfig(BaseModel):
     api_key: str  # 支持 ${ENV_VAR} 格式，由 loader 负责解析
     default_headers: dict[str, str] = {}
     concurrency: int = 1
+    rpm: int = 0  # 每分钟最大请求数，0 表示不限制
+    request_interval: float = 0  # 两次请求间的最小间隔秒数，在 semaphore 内等待
 
 
 class ModelEntry(BaseModel):
@@ -25,7 +27,7 @@ class ModelEntry(BaseModel):
 class TargetEntry(BaseModel):
     """评测目标"""
 
-    provider: str
+    provider: str = ""  # 可在 AppConfig validator 中从 models 列表自动推断
     model: str
     enabled: bool = True
     baseline_run_id: str | None = None
@@ -98,6 +100,20 @@ class AppConfig(BaseModel):
     models: list[ModelEntry] = []
     evaluation: EvaluationConfig
     report: ReportConfig = ReportConfig()
+
+    @model_validator(mode="after")
+    def _fill_target_providers(self) -> AppConfig:
+        """从 models 列表自动推断 targets 中缺失的 provider"""
+        model_provider_map = {m.name: m.provider for m in self.models}
+        for t in self.evaluation.targets:
+            if not t.provider:
+                if t.model in model_provider_map:
+                    t.provider = model_provider_map[t.model]
+                else:
+                    raise ValueError(
+                        f"target '{t.model}' 缺少 provider 且 models 列表中未定义"
+                    )
+        return self
 
     @staticmethod
     def get_retry_interval(intervals: list[float], attempt: int) -> float:

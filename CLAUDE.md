@@ -36,3 +36,27 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+# LLM Fingerprint Daily
+
+## 项目概述
+LLM 指纹追踪工具 - 通过定时评测追踪大语言模型的能力变化和指纹特征。
+
+## 关键目录
+
+| 路径 | 用途 |
+|------|------|
+| `/home/zhushanwen/scripts/llm-fingerprint-daily/` | 部署脚本存放位置，负责拉取 GitHub Docker 镜像并部署 |
+| `/home/zhushanwen/app/llm-fingerprint-daily/` | 镜像部署后的数据目录映射（配置文件、评测数据、报告等） |
+
+## 技术栈
+- Python 3.12, Typer CLI, Pydantic, httpx
+- Docker 部署，ENTRYPOINT 为 `fingerprint`
+- 配置文件为 `config.yaml`，支持 `${ENV_VAR}` 环境变量引用
+
+## CLI 子命令
+- `fingerprint run` - 执行一次评测
+- `fingerprint serve` - 启动定时调度
+- `fingerprint report` - 生成 HTML 报告
+- `fingerprint history` - 查看历史评分
+- `fingerprint baseline` - 手动设置基线
