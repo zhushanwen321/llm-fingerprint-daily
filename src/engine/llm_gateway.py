@@ -136,7 +136,9 @@ class LLMGateway:
         resp.raise_for_status()
 
         data = resp.json()
-        text = data["content"][0]["text"]
+        # 防御性解析：API 可能返回非标准格式
+        content = data.get("content", [])
+        text = content[0].get("text", "") if content else ""
         usage = data.get("usage", {})
         return RawResponse(
             text=text,

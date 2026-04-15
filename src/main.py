@@ -130,9 +130,18 @@ def baseline(
     config: Path = typer.Option(_DEFAULT_CONFIG, "--config", help="配置文件路径"),
     data_dir: Path = typer.Option(_DEFAULT_DATA, "--data-dir", help="数据目录"),
 ):
+    from src.config.loader import load_config
+
+    cfg = load_config(str(config))
+    target = next((t for t in cfg.evaluation.targets if t.model == model), None)
+    if target is None:
+        typer.echo(f"错误: 未在配置中找到模型 '{model}'")
+        raise typer.Exit(1)
+
+    model_dir = f"{target.provider}__{model}"
     asyncio.run(set_baseline(
         data_dir=str(data_dir),
-        model=model,
+        model_dir=model_dir,
         run_id=run_id,
     ))
     typer.echo(f"已设置 {model} 的基线为 {run_id}")

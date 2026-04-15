@@ -37,12 +37,12 @@ async def load_and_run(
 
 async def set_baseline(
     data_dir: str,
-    model: str,
+    model_dir: str,
     run_id: str,
 ) -> None:
     """手动设置指定模型的基线"""
     storage = Storage(base_dir=data_dir)
-    await storage.set_baseline(model, run_id, set_by="manual")
+    await storage.set_baseline(model_dir, run_id, set_by="manual")
 
 
 def list_history(data_dir: str, model_dir: str | None = None) -> list[dict]:
