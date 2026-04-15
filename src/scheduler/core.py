@@ -47,9 +47,13 @@ class FingerprintScheduler:
             len(eval_cfg.schedule),
         )
 
-    def shutdown(self) -> None:
-        """优雅关闭，不等待正在执行的任务"""
-        self._scheduler.shutdown(wait=False)
+    def shutdown(self, wait: bool = True) -> None:
+        """优雅关闭调度器
+        
+        Args:
+            wait: 是否等待正在执行的任务完成。默认为 True，确保任务完整执行。
+        """
+        self._scheduler.shutdown(wait=wait)
         logger.info("scheduler shutdown")
 
     async def _run(self) -> None:

@@ -51,3 +51,5 @@ ENV/
 data/
 reports/
 *.egg-info/
+# Added by code-review-graph
+.code-review-graph/
